@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tulip Farm</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        .game-ui {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        .bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+        .land-grid {
+            position: absolute;
+            width: 100%;
+            height: 100vh;
+            z-index: 5;
+        }
+        .land {
+            position: absolute;
+            width: 350px;
+            height: 350px;
+            cursor: pointer;
+        }
+        .land-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            z-index: 1;
+            pointer-events: none;
+            transform: scale(0.4);
+            opacity: 0;
+        }
+
+        .plant {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 100px;
+            height: 160px;
+            transform: translate(-50%, -100%);
+            transform-origin: center bottom;
+            display: none;
+            pointer-events: none;
+            z-index: 10;
+            object-fit: contain;
+            object-position: bottom center;
+            transition: transform 0.3s linear;
+        }
+        .plant.seed {
+            transform: translate(-40%, -100%) scale(0.45);
+        }
+        .plant.mid {
+            transform: translate(-30%, -100%) scale(0.7);
+        }
+        .plant.bloom {
+            transform: translate(-30%, -100%) scale(0.82);
+        }
+
+        .water-icon {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(60%, -200%);
+            display: none;
+            z-index: 9999;
+            width: 50px;
+            height: 50px;
+            pointer-events: auto;
+        }
+        .harvest-icon {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(70%, -200%);
+            display: none;
+            z-index: 9999;
+            width: 60px;
+            height: 60px;
+            pointer-events: auto;
+        }
+        .float-text {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 36px;
+            font-weight: bold;
+            color: #ffde70;
+            z-index: 40;
+            pointer-events: none;
+            animation: floatUp 1s ease forwards;
+            display: none;
+            white-space: nowrap;
+        }
+        @keyframes floatUp {
+            0% { opacity:1; transform: translate(-50%, 0); }
+            100% { opacity:0; transform: translate(-50%, -80px); }
+        }
+
+        .shop-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 520px;
+            z-index: 50;
+            display: none;
+            background: url('imgs/icons/shop.png') center / contain no-repeat;
+        }
+        .shop-close-btn {
+            position: absolute;
+            top: 6%;
+            right: 8%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            z-index: 60;
+        }
+        .shop-list-container {
+            position: absolute;
+            top: 18%;
+            left: 12%;
+            right: 12%;
+            bottom: 18%;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .shop-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .shop-item {
+            background: rgba(232, 212, 185, 0.9);
+            border: 3px solid #8b5a2b;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .shop-item img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+        .shop-item .price {
+            margin-top: 8px;
+            color: #8b5a2b;
+            font-weight: bold;
+        }
+        .shop-item.selected {
+            border-color: gold;
+            background: rgba(255,215,0,0.3);
+        }
+        .shop-buy-btn {
+            position: absolute;
+            bottom: 6%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 65%;
+            height: 10%;
+            cursor: pointer;
+        }
+
+        .top-resource-bar {
+            position: absolute;
+            top: 2%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 700px;
+            height: auto;
+            z-index: 25;
+        }
+        .coin-icon {
+            position: absolute;
+            top: 4%;
+            left: 47%;
+            transform: translateX(-50%);
+            width: 221px;
+            height: 76px;
+            z-index: 26;
+        }
+        .coin-number {
+            position: absolute;
+            top: 6.5%;
+            left: 49%;
+            transform: translateX(-50%);
+            font-size: 36px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 6px rgba(0,0,0,0.5);
+            z-index: 26;
+        }
+        .yarn-icon {
+            position: absolute;
+            top: 4%;
+            left: 26%;
+            transform: translateX(-50%);
+            width: 221px;
+            height: 76px;
+            z-index: 26;
+        }
+        .yarn-number {
+            position: absolute;
+            top: 6.5%;
+            left: 28%;
+            transform: translateX(-50%);
+            font-size: 36px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 6px rgba(0,0,0,0.5);
+            z-index: 26;
+        }
+        #land1 { top: 33.7%; left: 14%; }
+        #land2 { top: 23.3%; left: 26%; }
+        #land3 { top: 12%; left: 37.2%; }
+        #land4 { top: 46%; left: 25.3%; }
+        #land5 { top: 35%; left:37%; }
+        #land6 { top: 24%; left: 49%; }
+        #land7 { top: 58.5%; left: 37%; }
+        #land8 { top: 47%; left: 49%; }
+        #land9 { top: 35.5%; left: 61.5%; }
+        .func-group {
+            position: absolute;
+            top: 10%;
+            right: 6%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 60;
+        }
+        .func-btn {
+            width: 96px;
+            height: 96px;
+            cursor: pointer;
+            border-radius: 50%;
+            object-fit: contain;
+            transition: transform 0.1s;
+        }
+        .func-btn:active {
+            transform: scale(0.92);
+        }
+        .bag-btn {
+            position: absolute;
+            right: 80px;
+            bottom: 80px;
+            width: 130px;
+            height: 130px;
+            cursor: pointer;
+            z-index: 70;
+        }
+        .wish-btn {
+            position: absolute;
+            left: 80px;
+            bottom: 60px;
+            width: 130px;
+            height: 130px;
+            cursor: pointer;
+            z-index: 70;
+        }
+        .book-btn{
+            position:absolute;
+            left:220px;
+            bottom:60px;
+            width:130px;
+            height:130px;
+            cursor:pointer;
+            z-index:70;
+        }
+
+        .bag-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .bag-box {
+            width: 600px;
+            background: #fff;
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+        }
+        .bag-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+        }
+        .bag-title {
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        .flower-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .flower-item {
+            width: 120px;
+            padding: 10px;
+            background: #f8f8f;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 2px 6 rgba(0,0,0,0.1);
+        }
+        .flower-item img {
+            width: 70px;
+            height: auto;
+            margin-bottom: 8px;
+            object-fit: contain;
+        }
+        .flower-name {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .flower-count {
+            font-size: 22px;
+            color: #333;
+            margin: 4px 0;
+        }
+        .sell-info {
+            font-size: 13px;
+            color: #ff6666;
+        }
+
+        .wish-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            z-index: 200;
+        }
+        .wish-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 200;
+        }
+        .wish-close {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+            z-index: 201;
+        }
+        .wish-ui {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            gap: 300px;
+            z-index: 201;
+        }
+        .wish-panel {
+            width: 420px;
+            height: 320px;
+            background: url('imgs/icons/wish_panel.png') center / contain no-repeat;
+            position: relative;
+        }
+        .wish-buttons {
+            position: absolute;
+            left: 50%;
+            top: 215px;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+        }
+        .wish-btn-single, .wish-btn-ten {
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        .wish-btn-single img, .wish-btn-ten img {
+            width: 140px;
+            height: auto;
+            display: block;
+        }
+        
+/* Wish Pool Puzzle */
+.puzzle-panel {
+    width: 450px;
+    height: 470px;
+    background: url('imgs/icons/puzzle_panel.png') center / contain no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.puzzle-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 0;
+    width: 260px;
+    height: 260px;
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.puzzle-piece {
+    filter: grayscale(100%) brightness(0.6);
+    opacity: 0.3;
+    transition: all 0.3s ease;
+    background-repeat: no-repeat;
+    background-size: 260px 260px;
+}
+
+.puzzle-piece.lit {
+    filter: none;
+    opacity: 1;
+    background-size: 260px 260px, contain;
+    background-position: inherit, center;
+}
+
+.puzzle-piece[data-index="0"] { background-position: 0 0; }
+.puzzle-piece[data-index="1"] { background-position: -86.66px 0; }
+.puzzle-piece[data-index="2"] { background-position: -173.32px 0; }
+.puzzle-piece[data-index="3"] { background-position: 0 -86.66px; }
+.puzzle-piece[data-index="4"] { background-position: -86.66px -86.66px; }
+.puzzle-piece[data-index="5"] { background-position: -173.32px -86.66px; }
+.puzzle-piece[data-index="6"] { background-position: 0 -173.32px; }
+.puzzle-piece[data-index="7"] { background-position: -86.66px -173.32px; }
+.puzzle-piece[data-index="8"] { background-position: -173.32px -173.32px; }
+
+        .wish-result-text {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 5px #000;
+            z-index: 202;
+            pointer-events: none;
+            display: none;
+        }
+
+        .book-modal{
+            position: fixed;
+            top:0;
+            left:0;
+            width:100vw;
+            height:100vh;
+            background:rgba(0,0,0,0.7);
+            display:none;
+            justify-content:center;
+            align-items:center;
+            z-index:300;
+            backdrop-filter: blur(5px);
+        }
+        .book-box{
+            width: 800px;
+            height: 600px;
+            background: linear-gradient(135deg, #f9f3e7 0%, #f0e6d2 100%);
+            border-radius: 24px;
+            padding: 35px;
+            position:relative;
+            box-shadow: 15px 40px 40px rgba(0,0,0,0.3);
+            border: 8px solid #d4b886;
+            overflow: hidden;
+        }
+        .book-close{
+            position:absolute;
+            top:25px;
+            right:30px;
+            width:45px;
+            height:45px;
+            cursor:pointer;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+        .book-close:hover{
+            transform: scale(1.1);
+        }
+        .book-title{
+            text-align:center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #8b5a2b;
+            margin-bottom: 15px;
+        }
+        .book-progress{
+            text-align:center;
+            font-size: 20px;
+            color: #6d4c41;
+            margin-bottom: 20px;
+        }
+        .puzzle-scroll-container {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 10px 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .puzzle-scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+        .puzzle-collect{
+            display: flex;
+            gap: 30px;
+            padding: 0 20px;
+        }
+        .collect-item{
+            flex: 0 0 auto;
+            width: 220px;
+            height: 220px;
+            border-radius: 16px;
+            background: #fff;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            border: 4px solid #e0d0b0;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .collect-item:not(.have) {
+            filter: grayscale(100%);
+            opacity: 0.6;
+        }
+        .collect-item.have{
+            border-color: #8bc34a;
+            box-shadow: 0 0 20px rgba(139, 195, 74, 0.5);
+        }
+        .collect-item.have:hover{
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(139, 195, 74, 0.6);
+        }
+        .collect-item img{
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+        }
+        .collect-item:not(.have)::after {
+            content: "Locked";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #8b5a2b;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(255,255,25,0.9);
+        }
+        .arrow-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,25,0.8);
+            border-radius: 50%;
+            border: none;
+            font-size: 30px;
+            color: #8b5a2b;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 5;
+        }
+        .arrow-btn:hover {
+            background: rgba(255,255,255,1);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .left-arrow {left: 20px;}
+        .right-arrow {right: 20px;}
+        .complete-tip {
+            text-align: center;
+            font-size: 24px;
+            color: #ff9800;
+            font-weight: bold;
+            margin-top: 15px;
+            display: none;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Reward Modal */
+        .reward-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .reward-box {
+            background: linear-gradient(135deg, #fff9e6 0%, #ffe4b5 100%);
+            border: 6px solid #d4a574;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            width: 350px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .reward-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #8b5a2b;
+            margin-bottom: 20px;
+        }
+        .reward-item {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .reward-item img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            border-radius: 8px;
+            border: 2px solid #e0d0b0;
+        }
+        .reward-text {
+            font-size: 20px;
+            color: #555;
+        }
+        .reward-btn {
+            margin-top: 20px;
+            padding: 10px 30px;
+            font-size: 18px;
+            background: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .reward-btn:hover {
+            background: #a67c52;
+        }
+
+        /* Puzzle Complete Modal */
+        .puzzle-complete-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        }
+        .puzzle-complete-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            width: 450px;
+            border: 6px solid #8bc34a;
+        }
+        .puzzle-complete-title {
+            font-size: 32px;
+            color: #2e7d32;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .puzzle-complete-desc {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        .puzzle-complete-btn {
+            padding: 12px 30px;
+            font-size: 20px;
+            background: #8bc34a;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="game-ui">
+    <img class="bg" src="imgs/icons/bg.png">
+    <img class="top-resource-bar" src="imgs/icons/top_bar.png">
+    <img class="coin-icon" src="imgs/icons/coin.png">
+    <div class="coin-number" id="coinNum">10</div>
+    
+    <!-- ✅ 主界面毛线图标：yarn.png（你要求保留） -->
+    <img class="yarn-icon" src="imgs/icons/yarn.png">
+    <div class="yarn-number" id="yarnNum">30</div>
+
+    <div class="func-group">
+        <img class="func-btn" id="btnSeed" src="imgs/icons/trowel.png" alt="Plant All">
+        <img class="func-btn" id="btnWater" src="imgs/icons/watering.png" alt="Water All">
+        <img class="func-btn" id="btnHarvest" src="imgs/icons/basket.png" alt="Harvest All">
+    </div>
+    <img class="bag-btn" id="bagBtn" src="imgs/icons/bag.png" alt="Bag">
+    <img class="wish-btn" id="wishBtn" src="imgs/icons/wish.png" alt="Wish Fountain">
+    <img class="book-btn" id="bookBtn" src="imgs/icons/book.png" alt="Puzzle Book">
+
+    <div class="bag-modal" id="bagModal">
+        <div class="bag-box">
+            <img class="bag-close" id="bagClose" src="imgs/icons/close.png">
+            <div class="bag-title">My Bag</div>
+            <div class="flower-list" id="flowerList"></div>
+        </div>
+    </div>
+
+    <div class="book-modal" id="bookModal">
+        <div class="book-box">
+            <img class="book-close" id="bookClose" src="imgs/icons/close.png">
+            <div class="book-title">Puzzle Collection</div>
+            <div class="book-progress" id="progressText">Progress: 0/9</div>
+            <button class="arrow-btn left-arrow" id="leftArrow">◀</button>
+            <button class="arrow-btn right-arrow" id="rightArrow">▶</button>
+            <div class="puzzle-scroll-container" id="scrollContainer">
+                <div class="puzzle-collect" id="collectBox"></div>
+            </div>
+            <div class="complete-tip" id="completeTip">🎉 Congratulations! All puzzles collected! 🎉</div>
+        </div>
+    </div>
+
+    <div class="puzzle-complete-modal" id="puzzleCompleteModal">
+        <div class="puzzle-complete-box">
+            <div class="puzzle-complete-title" id="puzzleCompleteTitle">🎉 Puzzle 1 Completed!</div>
+            <div class="puzzle-complete-desc">Will switch to Puzzle 2 automatically</div>
+            <button class="puzzle-complete-btn" id="goToNextPuzzleBtn">Go to Next Puzzle</button>
+        </div>
+    </div>
+
+    <div class="land-grid">
+        <div class="land" id="land1">
+            <img class="land-bg" src="imgs/land/land1.png">
+            <img class="plant" src="">
+            <img class="water-icon" src="imgs/icons/water.png">
+            <img class="harvest-icon" src="imgs/icons/harvest.png">
+            <div class="float-text"></div>
+        </div>
+        <div class="land" id="land2">
+            <img class="land-bg" src="imgs/land/land2.png">
+            <img class="plant" src="">
+            <img class="water-icon" src="imgs/icons/water.png">
+            <img class="harvest-icon" src="imgs/icons/harvest.png">
+            <div class="float-text"></div>
+        </div>
+        <div class="land" id="land3">
+            <img class="land-bg" src="imgs/land/land3.png">
+            <img class="plant" src="">
+            <img class="water-icon" src="imgs/icons/water.png">
+            <img class="harvest-icon" src="imgs/icons/harvest.png">
+            <div class="float-text"></div>
+        </div>
+        <div class="land" id="land4">
+            <img class="land-bg" src="imgs/land/land4.png">
+            <img class="plant" src="">
+            <img class="water-icon" src="imgs/icons/water.png">
+            <img class="harvest-icon" src="imgs/icons/harvest.png">
+            <div class="float-text"></div>
+        </div>
+        <div class="land" id="land5">
+            <img class="land-bg" src="imgs/land/land5.png">
+            <img class="plant" src="">
+            <img class="water-icon" src="imgs/icons/water.png">
+            <img class="harvest-icon" src="imgs/icons/harvest.png">
+            <div class="float-text"></div>
+        </div>
+        <div class="land" id="land6">
+            <img class="land-bg" src="imgs/land/land6.png">
+            <img class="plant" src="">
+            <img class="water-icon" src="imgs/icons/water.png">
+            <img class="harvest-icon" src="imgs/icons/harvest.png">
+            <div class="float-text"></div>
+        </div>
+        <div class="land" id="land7">
+            <img class="land-bg" src="imgs/land/land7.png">
+            <img class="plant" src="">
+            <img class="water-icon" src="imgs/icons/water.png">
+            <img class="harvest-icon" src="imgs/icons/harvest.png">
+            <div class="float-text"></div>
+        </div>
+        <div class="land" id="land8">
+            <img class="land-bg" src="imgs/land/land8.png">
+            <img class="plant" src="">
+            <img class="water-icon" src="imgs/icons/water.png">
+            <img class="harvest-icon" src="imgs/icons/harvest.png">
+            <div class="float-text"></div>
+        </div>
+        <div class="land" id="land9">
+            <img class="land-bg" src="imgs/land/land9.png">
+            <img class="plant" src="">
+            <img class="water-icon" src="imgs/icons/water.png">
+            <img class="harvest-icon" src="imgs/icons/harvest.png">
+            <div class="float-text"></div>
+        </div>
+    </div>
+
+    <div class="shop-modal" id="shopModal">
+        <div class="shop-close-btn" id="shopCloseBtn"></div>
+        <div class="shop-list-container">
+            <div class="shop-list" id="shopList">
+                <div class="shop-item" data-cost="2" data-bloom="1">
+                    <img src="imgs/plants/flower1/bloom1.png">
+                    <div class="price">Daisy (2 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="2" data-bloom="2">
+                    <img src="imgs/plants/flower2/bloom2.png">
+                    <div class="price">Gypsophila (2 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="3" data-bloom="3">
+                    <img src="imgs/plants/flower3/bloom3.png">
+                    <div class="price">Daffodil (3 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="3" data-bloom="4">
+                    <img src="imgs/plants/flower4/bloom4.png">
+                    <div class="price">Freesia (3 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="5" data-bloom="5">
+                    <img src="imgs/plants/flower5/bloom5.png">
+                    <div class="price">Lily (5 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="5" data-bloom="6">
+                    <img src="imgs/plants/flower6/bloom6.png">
+                    <div class="price">Lavender (5 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="5" data-bloom="7">
+                    <img src="imgs/plants/flower7/bloom7.png">
+                    <div class="price">Sunflower (5 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="5" data-bloom="8">
+                    <img src="imgs/plants/flower8/bloom8.png">
+                    <div class="price">Tulip (5 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="8" data-bloom="9">
+                    <img src="imgs/plants/flower9/bloom9.png">
+                    <div class="price">Campanula (8 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="8" data-bloom="10">
+                    <img src="imgs/plants/flower10/bloom10.png">
+                    <div class="price">Hydrangea (8 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="10" data-bloom="11">
+                    <img src="imgs/plants/flower11/bloom11.png">
+                    <div class="price">Eustoma (10 yarn)</div>
+                </div>
+                <div class="shop-item" data-cost="10" data-bloom="12">
+                    <img src="imgs/plants/flower12/bloom12.png">
+                    <div class="price">Orchid (10 yarn)</div>
+                </div>
+            </div>
+        </div>
+        <div class="shop-buy-btn" id="buyBtn"></div>
+    </div>
+
+    <div class="wish-modal" id="wishModal">
+        <img class="wish-bg" src="imgs/icons/wish_bg.png">
+        <img class="wish-close" id="wishClose" src="imgs/icons/close.png">
+        <div class="wish-result-text" id="wishResultText"></div>
+        <div class="wish-ui">
+            <div class="wish-panel">
+                <div class="wish-buttons">
+                    <button class="wish-btn-single" id="wish1Btn">
+                        <img src="imgs/icons/btn_1wish.png" alt="1 Wish">
+                    </button>
+                    <button class="wish-btn-ten" id="wish10Btn">
+                        <img src="imgs/icons/btn_10wishes.png" alt="10 Wishes">
+                    </button>
+                </div>
+            </div>
+            <div class="puzzle-panel">
+                <div class="puzzle-grid" id="puzzleGrid">
+                    <div class="puzzle-piece" data-index="0"></div>
+                    <div class="puzzle-piece" data-index="1"></div>
+                    <div class="puzzle-piece" data-index="2"></div>
+                    <div class="puzzle-piece" data-index="3"></div>
+                    <div class="puzzle-piece" data-index="4"></div>
+                    <div class="puzzle-piece" data-index="5"></div>
+                    <div class="puzzle-piece" data-index="6"></div>
+                    <div class="puzzle-piece" data-index="7"></div>
+                    <div class="puzzle-piece" data-index="8"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="reward-modal" id="rewardModal">
+        <div class="reward-box">
+            <div class="reward-title">✨ Wish Result ✨</div>
+            <div id="rewardContent"></div>
+            <button class="reward-btn" id="rewardCloseBtn">OK</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const State = { EMPTY: 0, SEEDED: 1, GROWING: 2, RIPE: 3 };
+    const WATER_DELAY = 350;
+    let yarn = 30;
+    let coin = 10;
+    let currentLand = null;
+    let selectedItem = null;
+    let isFastSeed = false;
+    let bag = {};
+
+    let currentPuzzleIndex = 0;
+    const TOTAL_PUZZLES = 9;
+    const PUZZLE_PIECES_PER_SET = 9;
+    let puzzlePieces = [];
+    let puzzleUnlocked = new Array(TOTAL_PUZZLES).fill(false);
+
+    for (let i = 0; i < TOTAL_PUZZLES; i++) {
+        puzzlePieces.push(new Array(PUZZLE_PIECES_PER_SET).fill(false));
+    }
+
+    function needTwoWater(type){
+        return type >= 5;
+    }
+
+    const flowerNames = {
+        1: "Daisy",2: "Gypsophila",3: "Daffodil",4: "Freesia",
+        5: "Lily",6: "Lavender",7: "Sunflower",8: "Tulip",
+        9: "Campanula",10: "Hydrangea",11: "Eustoma",12: "Orchid"
+    };
+    const priceMap = {
+        1: [5, 0],   2: [5, 0],   3: [7, 1],   4: [7, 1],
+        5: [5, 2],   6: [5, 2],   7: [6, 3],   8: [6, 3],
+        9: [2, 5],   10: [2, 5],  11: [1, 8],  12: [1, 8]
+    };
+    const seedCostArr = [0,2,2,3,3,5,5,5,5,8,8,10,10];
+
+    function updateLandUI(land){
+        const id = land.id;
+        const st = landData[id].state;
+        const waterIco = land.querySelector('.water-icon');
+        const harvestIco = land.querySelector('.harvest-icon');
+        waterIco.style.display = "none";
+        harvestIco.style.display = "none";
+        if(st === State.SEEDED || st === State.GROWING){
+            waterIco.style.display = "block";
+        }
+        if(st === State.RIPE){
+            harvestIco.style.display = "block";
+        }
+    }
+
+    function setPlantClass(plant, stage){
+        plant.classList.remove('seed','mid','bloom');
+        if(stage === State.SEEDED) plant.classList.add('seed');
+        if(stage === State.GROWING) plant.classList.add('mid');
+        if(stage === State.RIPE) plant.classList.add('bloom');
+    }
+
+    for(let i=1;i<=12;i++) bag[`flower${i}`] = 0;
+
+    const landData = {};
+    const lands = document.querySelectorAll('.land');
+    const yarnNum = document.getElementById('yarnNum');
+    const coinNum = document.getElementById('coinNum');
+    const shopModal = document.getElementById('shopModal');
+    const shopCloseBtn = document.getElementById('shopCloseBtn');
+    const buyBtn = document.getElementById('buyBtn');
+    const shopItems = document.querySelectorAll('.shop-item');
+
+    function initBook(){
+        const box = document.getElementById("collectBox");
+        box.innerHTML = "";
+        for(let i=0;i<TOTAL_PUZZLES;i++){
+            const d = document.createElement("div");
+            d.className = "collect-item";
+            d.innerHTML = `<img src="imgs/puzzle/full_${i}.png" alt="Puzzle ${i+1}">`;
+            d.onclick = function() {
+                if (puzzleUnlocked[i]) {
+                    alert(`Puzzle ${i+1} Completed`);
+                } else {
+                    const missing = puzzlePieces[i].filter(p => !p).length;
+                    alert(`Puzzle ${i+1} not completed, ${missing} pieces left`);
+                }
+            };
+            box.appendChild(d);
+        }
+        refreshBook();
+    }
+
+    function refreshBook(){
+        const items = document.querySelectorAll(".collect-item");
+        const unlockedCount = puzzleUnlocked.filter(u => u).length;
+        items.forEach((el,i)=>{
+            puzzleUnlocked[i] ? (el.classList.add("have")) : el.classList.remove("have");
+        });
+        document.getElementById("progressText").innerText = `Progress: ${unlockedCount}/${TOTAL_PUZZLES}`;
+        document.getElementById("completeTip").style.display = unlockedCount===TOTAL_PUZZLES ? "block":"none";
+    }
+
+    function checkAndUnlockPuzzle(puzzleIndex) {
+        if (puzzleUnlocked[puzzleIndex]) return false;
+        const allCollected = puzzlePieces[puzzleIndex].every(p => p);
+        if (allCollected) {
+            puzzleUnlocked[puzzleIndex] = true;
+            return true;
+        }
+        return false;
+    }
+
+    function checkPuzzleComplete() {
+        if (puzzleUnlocked[currentPuzzleIndex]) {
+            document.getElementById("puzzleCompleteTitle").innerText = `🎉 Puzzle ${currentPuzzleIndex + 1} Completed!`;
+            document.getElementById("puzzleCompleteModal").style.display = "flex";
+        }
+    }
+
+    function switchToNextPuzzle() {
+        if (currentPuzzleIndex < TOTAL_PUZZLES - 1) {
+            currentPuzzleIndex++;
+        }
+        renderPuzzle();
+        document.getElementById("puzzleCompleteModal").style.display = "none";
+        alert(`Switched to Puzzle ${currentPuzzleIndex + 1}!`);
+    }
+
+    document.getElementById('leftArrow').onclick = ()=>{
+        document.getElementById('scrollContainer').scrollBy({left:-250,behavior:'smooth'});
+    };
+    document.getElementById('rightArrow').onclick = ()=>{
+        document.getElementById('scrollContainer').scrollBy({left:250,behavior:'smooth'});
+    };
+    document.getElementById("bookBtn").onclick = ()=>{
+        document.getElementById("bookModal").style.display = "flex";
+        refreshBook();
+    };
+    document.getElementById("bookClose").onclick = ()=>{
+        document.getElementById("bookModal").style.display = "none";
+    };
+
+    lands.forEach((land) => {
+        const id = land.id;
+        landData[id] = { state: State.EMPTY, bloomType: 0 };
+        updateLandUI(land);
+
+        land.addEventListener('click', () => {
+            if (landData[id].state !== State.EMPTY) return;
+            currentLand = land;
+            isFastSeed = false;
+            shopModal.style.display = 'block';
+        });
+
+        const waterBtn = land.querySelector('.water-icon');
+        waterBtn.addEventListener('click', () => {
+            const st = landData[id].state;
+            if (st === State.EMPTY || st === State.RIPE) return;
+            const plant = land.querySelector('.plant');
+            const type = landData[id].bloomType;
+            const waterIco = land.querySelector('.water-icon');
+
+            waterIco.style.display = "none";
+
+            setTimeout(()=>{
+                if(st === State.SEEDED){
+                    if(needTwoWater(type)){
+                        plant.src = `imgs/plants/flower${type}/mid${type}.png`;
+                        landData[id].state = State.GROWING;
+                        setPlantClass(plant, State.GROWING);
+                        setTimeout(() => waterIco.style.display = "block", 1000);
+                    }else{
+                        plant.src = `imgs/plants/flower${type}/bloom${type}.png`;
+                        landData[id].state = State.RIPE;
+                        setPlantClass(plant, State.RIPE);
+                    }
+                }else if(st === State.GROWING){
+                    plant.src = `imgs/plants/flower${type}/bloom${type}.png`;
+                    landData[id].state = State.RIPE;
+                    setPlantClass(plant, State.RIPE);
+                }
+                updateLandUI(land);
+            }, WATER_DELAY);
+        });
+
+        const harvestBtn = land.querySelector('.harvest-icon');
+        harvestBtn.addEventListener('click', () => {
+            if (landData[id].state !== State.RIPE) return;
+            const bt = landData[id].bloomType;
+            bag[`flower${bt}`]++;
+            const txt = land.querySelector('.float-text');
+            txt.textContent = 'Harvest +1';
+            txt.style.display = 'block';
+            setTimeout(() => {
+                txt.style.display = 'none';
+                land.querySelector('.plant').style.display = 'none';
+                landData[id].state = State.EMPTY;
+                landData[id].bloomType = 0;
+                updateLandUI(land);
+            }, 1000);
+        });
+    });
+
+    shopItems.forEach(item => {
+        item.onclick = ()=>{
+            shopItems.forEach(i=>i.classList.remove('selected'));
+            item.classList.add('selected');
+            selectedItem = item;
+        };
+    });
+
+    buyBtn.addEventListener('click', () => {
+        if(!selectedItem) return;
+        const cost = +selectedItem.dataset.cost;
+        const bloomIdx = +selectedItem.dataset.bloom;
+
+        if(!isFastSeed){
+            if(!currentLand || yarn < cost) return;
+            yarn -= cost;
+            yarnNum.textContent = yarn;
+            const land = currentLand;
+            landData[land.id].bloomType = bloomIdx;
+            landData[land.id].state = State.SEEDED;
+            const plant = land.querySelector('.plant');
+            plant.src = `imgs/plants/flower${bloomIdx}/seed${bloomIdx}.png`;
+            plant.style.display = 'block';
+            setPlantClass(plant, State.SEEDED);
+            updateLandUI(land);
+        }else{
+            const emptyArr = [];
+            lands.forEach(l=>{if(landData[l.id].state===State.EMPTY) emptyArr.push(l);});
+            const maxNum = Math.floor(yarn / cost);
+            const useList = emptyArr.slice(0, maxNum);
+            const totalCost = useList.length * cost;
+            if(totalCost <= 0 || yarn < totalCost) return;
+            yarn -= totalCost;
+            yarnNum.textContent = yarn;
+            useList.forEach(land => {
+                landData[land.id].bloomType = bloomIdx;
+                landData[land.id].state = State.SEEDED;
+                const plant = land.querySelector('.plant');
+                plant.src = `imgs/plants/flower${bloomIdx}/seed${bloomIdx}.png`;
+                plant.style.display = 'block';
+                setPlantClass(plant, State.SEEDED);
+                updateLandUI(land);
+            });
+        }
+        shopModal.style.display = 'none';
+        selectedItem = null;
+        isFastSeed = false;
+        shopItems.forEach(i=>i.classList.remove('selected'));
+    });
+
+    shopCloseBtn.onclick = ()=>{
+        shopModal.style.display = 'none';
+        selectedItem = null;
+        isFastSeed = false;
+        shopItems.forEach(i=>i.classList.remove('selected'));
+    };
+
+    document.getElementById('btnSeed').onclick = ()=>{
+        isFastSeed = true;
+        shopModal.style.display = 'block';
+    };
+
+    document.getElementById('btnHarvest').onclick = ()=>{
+        let count = 0;
+        lands.forEach(land => {
+            const id = land.id;
+            if (landData[id].state === State.RIPE) {
+                count++;
+                const bt = landData[id].bloomType;
+                bag[`flower${bt}`]++;
+                landData[id].state = State.EMPTY;
+                landData[id].bloomType = 0;
+                land.querySelector('.plant').style.display = 'none';
+                updateLandUI(land);
+            }
+        });
+        if(count>0){
+            const txt = document.getElementById('land5').querySelector('.float-text');
+            txt.textContent = `Harvest +${count}`;
+            txt.style.display = 'block';
+            setTimeout(()=>txt.style.display='none',1000);
+        }
+    };
+
+    document.getElementById('btnWater').onclick = ()=>{
+        lands.forEach(land => {
+            const id = land.id;
+            const st = landData[id].state;
+            if(st === State.EMPTY || st === State.RIPE) return;
+            const plant = land.querySelector('.plant');
+            const type = landData[id].bloomType;
+            const waterIco = land.querySelector('.water-icon');
+
+            waterIco.style.display = "none";
+
+            setTimeout(()=>{
+                if(st === State.SEEDED){
+                    if(needTwoWater(type)){
+                        plant.src = `imgs/plants/flower${type}/mid${type}.png`;
+                        landData[id].state = State.GROWING;
+                        setPlantClass(plant, State.GROWING);
+                        setTimeout(() => waterIco.style.display = "block", 1000);
+                    }else{
+                        plant.src = `imgs/plants/flower${type}/bloom${type}.png`;
+                        landData[id].state = State.RIPE;
+                        setPlantClass(plant, State.RIPE);
+                    }
+                }else if(st === State.GROWING){
+                    plant.src = `imgs/plants/flower${type}/bloom${type}.png`;
+                    landData[id].state = State.RIPE;
+                    setPlantClass(plant, State.RIPE);
+                }
+                updateLandUI(land);
+            }, WATER_DELAY);
+        });
+    };
+
+    document.getElementById('bagBtn').onclick = ()=>{
+        document.getElementById('bagModal').style.display = 'flex';
+        renderBag();
+    };
+    document.getElementById('bagClose').onclick = ()=>{
+        document.getElementById('bagModal').style.display = 'none';
+    };
+    function renderBag(){
+        const list = document.getElementById('flowerList');
+        list.innerHTML = '';
+        for(let i=1;i<=12;i++){
+            if(bag[`flower${i}`]>0){
+                const [y,p] = priceMap[i];
+                const str = `Sell:+${y} yarn`+(p?` +${p} coins`:'');
+                const item = document.createElement('div');
+                item.className='flower-item';
+                item.innerHTML=`
+                    <img src="imgs/plants/flower${i}/bloom${i}.png">
+                    <div class="flower-name">${flowerNames[i]}</div>
+                    <div class="flower-count">x${bag[`flower${i}`]}</div>
+                    <div class="sell-info">${str}</div>
+                `;
+                item.onclick=()=>{
+                    bag[`flower${i}`]--;
+                    yarn+=y; coin+=p;
+                    yarnNum.innerText=yarn;coinNum.innerText=coin;
+                    renderBag();
+                };
+                list.appendChild(item);
+            }
+        }
+    }
+
+    document.getElementById('wishBtn').onclick = ()=>{
+        document.getElementById('wishModal').style.display = 'block';
+        renderPuzzle();
+    };
+    document.getElementById('wishClose').onclick = ()=>{
+        document.getElementById('wishModal').style.display = 'none';
+    };
+
+    function renderPuzzle(){
+        const pieces = document.querySelectorAll('.puzzle-piece');
+        pieces.forEach((el, idx) => {
+            el.style.backgroundImage = `url('imgs/puzzle/full_${currentPuzzleIndex}.png')`;
+            if (puzzlePieces[currentPuzzleIndex][idx]) {
+                el.classList.add('lit');
+                el.style.backgroundImage = `url('imgs/puzzle/full_${currentPuzzleIndex}.png'), url('imgs/puzzle/puzzle_${currentPuzzleIndex * 9 + idx}.png')`;
+            } else {
+                el.classList.remove('lit');
+            }
+        });
+        refreshBook();
+    }
+
+    function showWishResult(t){
+        const dom = document.getElementById('wishResultText');
+        dom.innerText=t;dom.style.display='block';
+        setTimeout(()=>dom.style.display='none',1500);
+    }
+
+    // ✅ 许愿奖励毛线图标：yarn1.png（你要求修改）
+    function showRewardModal(pieceSetIdx, pieceIdx, yarnAmount, unlockedNew) {
+        const modal = document.getElementById('rewardModal');
+        const content = document.getElementById('rewardContent');
+        let html = '';
+
+        if (pieceSetIdx !== null && pieceIdx !== null) {
+            html += `
+                <div class="reward-item">
+                    <img src="imgs/puzzle/puzzle_${pieceSetIdx * 9 + pieceIdx}.png" alt="Puzzle Piece">
+                    <div class="reward-text">Got Puzzle Piece ${pieceIdx+1}</div>
+                </div>
+            `;
+        }
+        if (yarnAmount > 0) {
+            html += `
+                <div class="reward-item">
+                    <img src="imgs/icons/yarn1.png" alt="Yarn">
+                    <div class="reward-text">Got Yarn ×${yarnAmount}</div>
+                </div>
+            `;
+        }
+        if (unlockedNew) {
+            html += `
+                <div class="reward-text" style="color:#2e7d32; font-weight:bold;">🎉 Puzzle ${pieceSetIdx+1} Completed!</div>
+            `;
+        }
+
+        content.innerHTML = html;
+        modal.style.display = 'flex';
+
+        setTimeout(() => {
+            checkPuzzleComplete();
+        }, 500);
+    }
+
+    document.getElementById('rewardCloseBtn').onclick = ()=>{
+        document.getElementById('rewardModal').style.display = 'none';
+    };
+
+    function doWish(num){
+        if(coin<num) {
+            alert("Not enough coins");
+            return;
+        }
+        coin-=num;
+        coinNum.innerText=coin;
+
+        let totalYarnGained = 0;
+        let newPieceSetIdx = null;
+        let newPieceIdx = null;
+        let unlockedNew = false;
+
+        for(let i=0;i<num;i++){
+            // ✅ 关键修改：拼图爆率从 10% → 2%
+            if(Math.random()>0.98){
+                const randomSetIdx = currentPuzzleIndex;
+                const availablePieces = [];
+                puzzlePieces[randomSetIdx].forEach((piece, pieceIdx) => {
+                    if (!piece) availablePieces.push(pieceIdx);
+                });
+
+                if (availablePieces.length > 0) {
+                    const randomPieceIdx = availablePieces[Math.floor(Math.random() * availablePieces.length)];
+                    puzzlePieces[randomSetIdx][randomPieceIdx] = true;
+                    newPieceSetIdx = randomSetIdx;
+                    newPieceIdx = randomPieceIdx;
+
+                    if (checkAndUnlockPuzzle(randomSetIdx)) unlockedNew = true;
+                } else {
+                    yarn+=5; totalYarnGained +=5;
+                }
+            }else{
+                yarn+=2; totalYarnGained +=2;
+            }
+        }
+
+        yarnNum.innerText=yarn;
+        renderPuzzle();
+        showRewardModal(newPieceSetIdx, newPieceIdx, totalYarnGained, unlockedNew);
+    }
+
+    document.getElementById("goToNextPuzzleBtn").onclick = switchToNextPuzzle;
+    document.getElementById('wish1Btn').onclick=()=>doWish(1);
+    document.getElementById('wish10Btn').onclick=()=>doWish(10);
+
+    initBook();
+</script>
+</body>
+</html>
